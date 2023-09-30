@@ -2,6 +2,8 @@
 
 package appfile
 
+import kotlin.math.min
+
 /*
  https://nulib.com/library/AppleSingle_AppleDouble.pdf
 
@@ -85,6 +87,7 @@ data class AppleSingle(val bytes: ByteArray) {
     private fun createDataForkEntry(entryStartOffset: Int): DataForkEntry {
         val offset = getNumberFrom(entryStartOffset + 4, 4)
         val len = getNumberFrom(entryStartOffset + 8, 4)
+//        println("XXXXXXXXX Creating DataForkEntry, offset: 0x${offset.toString(16)}, len: 0x${len.toString(16)}")
         return DataForkEntry(bytes.sliceArray(offset.toInt() until (offset + len).toInt()))
     }
 
@@ -96,13 +99,21 @@ data class AppleSingle(val bytes: ByteArray) {
         val access = getNumberFrom(offset.toInt(), 2)
         val fileType = getNumberFrom(offset.toInt() + 2, 2)
         val auxiliaryType = getNumberFrom(offset.toInt() + 4, 4)
+//        println("XXXXXXXXX Creating ProDosEntry, offset: 0x${offset.toString(16)}, len: 0x${len.toString(16)}, access: 0x${access.toString(16)}, fileType: 0x${fileType.toString(16)}, auxiliaryType: 0x${auxiliaryType.toString(16)}")
         return ProDosEntry(access.toUShort(), fileType.toUShort(), auxiliaryType)
     }
 
     private fun getNumberFrom(start: Int, length: Int): UInt {
-        return bytes.sliceArray(start until start + length).fold(0u) { acc, b ->
-            acc * 256u + b.toUInt()
+//        val asString = bytes.sliceArray(start until start + length).joinToString(separator = " ") { eachByte -> "%02x".format(eachByte) }
+//        println(".... getNumberFrom, start: $start, length: $length, bytes: $asString")
+
+        val len = bytes.sliceArray(start until start + length).fold(0L) { acc, b ->
+            val newAcc = acc * 256L + b.toUByte().toLong()
+//            println(".... getNumberFrom, acc: $acc, b: ${b.toUByte()}, newAcc: $newAcc")
+            newAcc
         }
+//        println(".... len: $len, uint: ${len.toUInt()}")
+        return len.toUInt()
     }
 
     override fun equals(other: Any?): Boolean {
@@ -130,6 +141,23 @@ data class AppleSingle(val bytes: ByteArray) {
     override fun toString(): String {
         val dataSize = entries.filterIsInstance<DataForkEntry>().firstOrNull()?.data?.size ?: 0
         return "AppleSingle[entries: ${entries.count()}, dataLen: $dataSize]"
+    }
+
+    fun dump() {
+        println("AppleSingle, loadAddress: 0x${loadAddress.toString(16)}, len: 0x${bytes.size.toString(16)}")
+        entries.forEach { entry ->
+            when(entry) {
+                is DataForkEntry -> {
+                    val upToX = min(16, entry.data.size - 1)
+                    val firstX = entry.data.sliceArray(0..upToX).joinToString(separator = " ") { eachByte -> "%02x".format(eachByte) }
+                    println("  DataForkEntry, len: 0x${entry.data.size.toString(16)}: $firstX")
+                }
+
+                is ProDosEntry -> {
+                    println("  ProDosEntry, access: 0x${entry.access.toString(16)}, fileType: 0x${entry.fileType.toString(16)}, auxiliaryType: 0x${entry.auxiliaryType.toString(16)}")
+                }
+            }
+        }
     }
 }
 

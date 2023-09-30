@@ -5,7 +5,9 @@ import cucumber.api.java.Before
 import cucumber.api.java.en.Given
 import java.nio.file.Files
 import java.nio.file.Paths
+import kotlin.io.path.readBytes
 import kotlin.io.path.readLines
+import kotlin.io.path.readText
 import kotlin.io.path.writeText
 
 class CA65Steps {
@@ -80,10 +82,26 @@ al 003000 .start
         createAndLoadApplication(crt0App, XEXSteps.xexSteps)
     }
 
+    @Given("^I create and load atari application using crt-file \"([^\"]*)\"\$")
+    @Throws(Exception::class)
+    fun `I create and load atari application using crt-file`(crtFile: String) {
+        val cwd = Paths.get(".")
+        val crtCode = cwd.resolve(crtFile).readText()
+        createAndLoadApplication(crtCode, XEXSteps.xexSteps)
+    }
+
     @Given("^I create and load apple-single application$")
     @Throws(Exception::class)
     fun `I create and load apple-single application`() {
         createAndLoadApplication(crt0App, AppleSingleSteps.a2s)
+    }
+
+    @Given("^I create and load apple-single application using crt-file \"([^\"]*)\"\$")
+    @Throws(Exception::class)
+    fun `I create and load apple-single application using crt-file`(crtFile: String) {
+        val cwd = Paths.get(".")
+        val crtCode = cwd.resolve(crtFile).readText()
+        createAndLoadApplication(crtCode, AppleSingleSteps.a2s)
     }
 
     @Given("^I create and load simple atari application$")
@@ -132,11 +150,14 @@ al 003000 .start
     private val crt0App = """
                 ; setup basic crt0 code for testing
                     .export _init
-                    .import _main, initlib
-                    
+                    ; .export __STARTUP__ : absolute = 1
+
+                    .import _main
+                    .import initlib
                     .import __MAIN_START__, __MAIN_SIZE__, __STACKSIZE__
+
                     .include "zeropage.inc"
-                    .segment "STARTUP"
+                    ; .segment "STARTUP"
     
                 _init:
                     ; setup stack pointer
@@ -149,7 +170,7 @@ al 003000 .start
                     sta sp
                     lda #>(__MAIN_START__ + __MAIN_SIZE__ + __STACKSIZE__)
                     sta sp+1
-
+                    jsr initlib
                     jsr _main
                     brk
     

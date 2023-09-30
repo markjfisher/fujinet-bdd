@@ -20,7 +20,7 @@ class AppleSingleSteps: StepLoader {
         val machine = Glue.getMachine()
 
         val asFile = AppleSingle(cwd.resolve(file).readBytes())
-        // asFile.dump()
+        asFile.dump()
         copyToMachine(asFile, machine)
         machine.cpu.programCounter = asFile.loadAddress
     }
