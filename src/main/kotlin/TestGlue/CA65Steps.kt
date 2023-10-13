@@ -111,6 +111,7 @@ al 003000 .start
     }
 
     private fun createAndLoadApplication(stubApp: String, loader: StepLoader) {
+        val logging = System.getProperty("fujinet.logging", "false").toBoolean()
         val cwd = Paths.get(".")
         val wd = cwd.resolve(workDir)
         val crt0 = Files.createFile(wd.resolve("crt0-test.s"))
@@ -123,7 +124,7 @@ al 003000 .start
         (compileFiles + "$workDir/crt0-test.s").forEach { f ->
             val justName = f.substringAfterLast('/').substringBeforeLast('.')
             val cmd = "cl65 -t $target -c --create-dep $workDir/${justName}.d $options -l $workDir/${justName}.lst -o $workDir/${justName}.o $f"
-            println("running cl65 for $f with cmd: >$cmd<")
+            if (logging) println("running cl65 for $f with cmd: >$cmd<")
             glue.i_run_the_command_line(cmd)
         }
         // create the app
@@ -133,7 +134,7 @@ al 003000 .start
             val justName = f.substringAfterLast('/').substringBeforeLast('.')
             "$workDir/${justName}.o"
         }
-        println("running cl65 for app with cmd: >$appCmd<")
+        if (logging) println("running cl65 for app with cmd: >$appCmd<")
         glue.i_run_the_command_line(appCmd)
 
         loader.loadApp("$workDir/app.$ext")

@@ -32,7 +32,7 @@ class XEXSteps: StepLoader {
     private fun copyToMachine(atariBinary: AtariBinary, machine: Machine) {
         atariBinary.sections.filterIsInstance<DataSection>().forEach { ds ->
             ds.data.forEachIndexed { i, b ->
-                machine.bus.write(ds.startAddress + i, b.toUByte().toInt())
+                machine.ram.write(ds.startAddress + i, b.toUByte().toInt())
             }
         }
     }

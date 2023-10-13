@@ -8,6 +8,7 @@ import kotlin.io.path.absolutePathString
 import kotlin.io.path.createTempFile
 import kotlin.io.path.deleteIfExists
 import kotlin.io.path.writeText
+import kotlin.random.Random
 
 class MemorySteps {
     @Throws(Exception::class)
@@ -20,7 +21,7 @@ class MemorySteps {
 
         val machine = Glue.getMachine()
         repeat(count) { i ->
-            machine.bus.write(startAddress + i, value)
+            machine.ram.write(startAddress + i, value)
         }
     }
     @Throws(Exception::class)
@@ -51,6 +52,7 @@ class MemorySteps {
     @Throws(Exception::class)
     @Given("^I write word at (.*) with hex (.*)$")
     fun `i write word at with hex`(mem: String, hexString: String) {
+        val logging = System.getProperty("fujinet.logging", "false").toBoolean()
         var hex = hexString
         if (hex.startsWith('$')) {
             hex = hex.substring(1)
@@ -65,10 +67,10 @@ class MemorySteps {
         val loIndex = if (nHex.length == 4) 2 else 0
         val lo = nHex.substring(loIndex, loIndex + 2).toInt(16)
 
-        println("MemorySteps::I write word at with hex: mem: $mem, hex: $hex, address: ${address.toString(16)}, lo: ${lo.toString(16)}, hi: ${hi.toString(16)}")
+        if (logging) println("MemorySteps::I write word at with hex: mem: $mem, hex: $hex, address: ${address.toString(16)}, lo: ${lo.toString(16)}, hi: ${hi.toString(16)}")
         val machine = Glue.getMachine()
-        machine.bus.write(address, lo)
-        machine.bus.write(address+1, hi)
+        machine.ram.write(address, lo)
+        machine.ram.write(address+1, hi)
     }
 
     @Throws(Exception::class)
@@ -79,8 +81,8 @@ class MemorySteps {
         val lo = value % 256
         val hi = value / 256
         val machine = Glue.getMachine()
-        machine.bus.write(address, lo)
-        machine.bus.write(address+1, hi)
+        machine.ram.write(address, lo)
+        machine.ram.write(address+1, hi)
     }
 
     @Throws(Exception::class)
@@ -91,8 +93,8 @@ class MemorySteps {
         val lo = value % 256
         val hi = value / 256
         val machine = Glue.getMachine()
-        machine.bus.write(address, lo)
-        machine.bus.write(address+1, hi)
+        machine.ram.write(address, lo)
+        machine.ram.write(address+1, hi)
     }
 
     @Throws(Exception::class)
@@ -159,10 +161,10 @@ class MemorySteps {
         // Should write (at)ascii, not internal, as space is 00, which is null terminator too!
         val machine = Glue.getMachine()
         s.forEachIndexed { i, c ->
-            machine.bus.write(address + i, c.code)
+            machine.ram.write(address + i, c.code)
         }
         // end with nul (0) char to terminate string
-        machine.bus.write(address + s.length, 0)
+        machine.ram.write(address + s.length, 0)
     }
 
     @Throws(Exception::class)
@@ -174,7 +176,7 @@ class MemorySteps {
         // Should write internal, as space is 00, which is null terminator too!
         val machine = Glue.getMachine()
         s.forEachIndexed { i, c ->
-            machine.bus.write(address + i, charToInternal(c))
+            machine.ram.write(address + i, charToInternal(c))
         }
     }
 
@@ -186,7 +188,7 @@ class MemorySteps {
         val machine = Glue.getMachine()
         val tokens = toTokens(s)
         tokens.forEachIndexed { i, token ->
-            machine.bus.write(address + i, token.code())
+            machine.ram.write(address + i, token.code())
         }
     }
 
@@ -219,6 +221,32 @@ class MemorySteps {
                 """.trimIndent())
             }
             currentLocation++
+        }
+    }
+
+    @Throws(Exception::class)
+    @Given("^randomise memory between (.*) and (.*)$")
+    fun `randomise memory between X and Y`(start: String, end: String) {
+        val startAddress = Glue.valueToInt(start)
+        val endAddress = Glue.valueToInt(end)
+        println("Randomising memory between 0x${startAddress.toString(16)} and 0x${endAddress.toString(16)}")
+        val machine = Glue.getMachine()
+        val rBytes = Random.nextBytes(endAddress - startAddress + 1)
+        rBytes.forEachIndexed { i, b ->
+            machine.ram.write(i + startAddress, b.toUByte().toInt())
+        }
+    }
+
+    @Throws(Exception::class)
+    @Given("^set memory between (.*) and (.*) to (.*)$")
+    fun `set memory between X and Y to b`(start: String, end: String, b: String) {
+        val startAddress = Glue.valueToInt(start)
+        val endAddress = Glue.valueToInt(end)
+        val bValue = Glue.valueToInt(b)
+        println("Setting memory between 0x${startAddress.toString(16)} and 0x${endAddress.toString(16)} to 0x${bValue.toString(16)}")
+        val machine = Glue.getMachine()
+        for (i in startAddress .. endAddress) {
+            machine.ram.write(i, bValue)
         }
     }
 

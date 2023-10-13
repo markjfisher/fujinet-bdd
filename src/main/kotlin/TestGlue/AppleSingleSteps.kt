@@ -20,7 +20,7 @@ class AppleSingleSteps: StepLoader {
         val machine = Glue.getMachine()
 
         val asFile = AppleSingle(cwd.resolve(file).readBytes())
-        asFile.dump()
+        // asFile.dump()
         copyToMachine(asFile, machine)
         machine.cpu.programCounter = asFile.loadAddress
     }
@@ -28,7 +28,7 @@ class AppleSingleSteps: StepLoader {
     private fun copyToMachine(appleSingle: AppleSingle, machine: Machine) {
         appleSingle.entries.filterIsInstance<DataForkEntry>().forEach { entry ->
             entry.data.forEachIndexed { i, b ->
-                machine.bus.write(appleSingle.loadAddress + i, b.toUByte().toInt())
+                machine.ram.write(appleSingle.loadAddress + i, b.toUByte().toInt())
             }
         }
     }

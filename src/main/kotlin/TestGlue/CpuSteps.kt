@@ -22,7 +22,7 @@ class CpuSteps {
             m[parts[0][0]] = parts[1] != "0"
             m
         }
-        println("Testing status flags against: $flagToOnOff")
+        // println("Testing status flags against: $flagToOnOff")
 
         flagToOnOff.forEach { (r, onOff) ->
             when(r) {
